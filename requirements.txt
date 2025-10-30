@@ -1,0 +1,9 @@
+Flask>=2.0
+pandas>=1.0
+scikit-learn>=1.0
+flask_sqlalchemy>=3.0
+pyinstaller>=6.0
+joblib>=1.2
+numpy>=1.26
+pystray==0.19.5
+Pillow>=10.0

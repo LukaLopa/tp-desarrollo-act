@@ -1,0 +1,47 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.sqlite3
+data.db
+instance/
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.bak
+*.tmp
+__MACOSX/
+*.exe
+*.dll
+*.so
+
+# PyInstaller
+*.spec
+
+# Byte-compiled / optimized / DLL files
+
+# logs
+logs/
+
+# virtual envs
+.env
+
+# node
+node_modules/
+
+# coverage
+.coverage
+htmlcov/
+
+# pyenv
+.python-version

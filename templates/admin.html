@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración</title>
+</head>
+<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
+<h2>Panel de Administración</h2>
+<p>Bienvenido, {{ usuario.nombre }}</p>
+<a href="/logout">Cerrar sesión</a>
+
+<h3>Usuarios registrados</h3>
+{% if usuarios %}
+<ul>
+{% for u in usuarios %}
+    <li>{{ u.nombre }} - DNI: {{ u.dni }}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No hay usuarios registrados.</p>
+{% endif %}
+
+<h3>Empeños registrados</h3>
+{% if empenos %}
+<ul>
+{% for e in empenos %}
+    <li>
+        ID {{ e.id }} - {{ e.dni }} - {{ e.tipo }} - {{ e.descripcion }} - ${{ e.valor_estimado }}
+        <br> Fecha de vencimiento: {{ e.expiracion.split('T')[0] }}
+        <br> Renovaciones: {{ e.renovaciones }}
+        {% if not e.pagado %}
+            {% if e.renovaciones and e.renovaciones > 0 %}
+                <span style="color:gray; margin-left:10px;">Rechazo deshabilitado (renovado)</span>
+            {% else %}
+                <form action="/rechazar_empeno" method="POST" style="display:inline; margin-left:10px;">
+                    <input type="hidden" name="id" value="{{ e.id }}">
+                    <button type="submit">Rechazar</button>
+                </form>
+            {% endif %}
+            <form action="/renovar_empeno" method="POST" style="display:inline; margin-left:6px;">
+                <input type="hidden" name="id" value="{{ e.id }}">
+                <button type="submit">Renovar (admin)</button>
+            </form>
+        {% else %}
+            <span style="color:gray; margin-left:6px;">Operaciones deshabilitadas (prestamo pagado)</span>
+        {% endif %}
+        {% if e.pagado %}
+            <span style="color:green; margin-left:10px;"><b>Pagado</b>{% if e.pagado_at %} ({{ e.pagado_at.split('T')[0] }}){% endif %}</span>
+        {% else %}
+            <form action="/marcar_pagado" method="POST" style="display:inline; margin-left:6px;">
+                <input type="hidden" name="id" value="{{ e.id }}">
+                <button type="submit">Marcar como préstamo pagado</button>
+            </form>
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No hay empeños registrados.</p>
+{% endif %}
+
+<a href="/">Volver al inicio</a>
+<h3>Log de Renovaciones</h3>
+{% if renovaciones_log %}
+<ul>
+{% for r in renovaciones_log %}
+    <li>ID {{ r.id }} - By: {{ r.by }} {% if r.by_admin %}(admin){% endif %} - {{ r.time.split('T')[0] }} - ${{ r.old }} -> ${{ r.new }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+<h3>Log de Pagos</h3>
+{% if pagos_log %}
+<ul>
+{% for p in pagos_log %}
+    <li>ID {{ p.id }} - Empeño {{ p.empeno_id }} - {{ p.time.split('T')[0] }} {% if p.by_admin %}(admin){% endif %}</li>
+{% endfor %}
+</ul>
+{% endif %}
+</body>
+</html>

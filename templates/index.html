@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Empeños - Inicio</title>
+</head>
+<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
+<h2>💰 Sistema de Gestión de Empeños</h2>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+{% if msg %}
+<p style="color:green;">{{ msg }}</p>
+{% endif %}
+
+<h3>Registro</h3>
+<form action="/registrar" method="POST">
+    Nombre: <input type="text" name="nombre" required>
+    DNI: <input type="text" name="dni" required>
+    <button type="submit">Registrar</button>
+</form>
+
+<h3>Iniciar sesión</h3>
+<form action="/login" method="POST">
+    DNI: <input type="text" name="dni" required>
+    <button type="submit">Entrar</button>
+</form>
+
+<h3>Iniciar sesión (Administrador)</h3>
+<form action="/admin_login" method="POST">
+    Usuario: <input type="text" name="admin_user" required>
+    Contraseña: <input type="password" name="admin_pass" required>
+    <button type="submit">Entrar como admin</button>
+</form>
+
+</body>
+</html>

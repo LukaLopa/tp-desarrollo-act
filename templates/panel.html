@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Usuario</title>
+</head>
+<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
+<h2>Bienvenido, {{ usuario.nombre }}</h2>
+<p>DNI: {{ usuario.dni }}</p>
+<a href="/logout">Cerrar sesión</a>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+{% if msg %}
+<p style="color:green;">{{ msg }}</p>
+{% endif %}
+
+<h3>Solicitar Pre-cotización (IA)</h3>
+<form action="/precotizar" method="POST">
+    Tipo de objeto: <input type="text" name="tipo" required><br><br>
+    Descripción: <input type="text" name="descripcion" required><br><br>
+    Valor de referencia ($): <input type="number" name="valor_ref" required><br><br>
+    Estado (%): <input type="number" step="1" min="0" max="100" name="estado" required><br><br>
+    <button type="submit">Calcular valor estimado</button>
+</form>
+
+<h3>Historial de Empeños</h3>
+{% if historial %}
+<ul>
+{% for e in historial %}
+    <li>
+    ID {{ e.id }} - {{ e.tipo }} - {{ e.descripcion }} - Valor estimado: ${{ e.valor_estimado }}
+    <br> Fecha de vencimiento: {{ e.expiracion.split('T')[0] }}
+    <br> Días restantes para pagar: {% if e.dias_restantes > 0 %}{{ e.dias_restantes }} días{% else %}<b>Vencido</b>{% endif %}
+    {% if e.pagado %}
+        <br><span style="color:green;"><b>Pagado</b>{% if e.pagado_at %} ({{ e.pagado_at.split('T')[0] }}){% endif %}</span>
+    {% endif %}
+    <br> Renovaciones: {{ e.renovaciones }}
+        {% if not e.pagado %}
+            <form action="/renovar_empeno" method="POST" style="display:inline; margin-left:10px;">
+                <input type="hidden" name="id" value="{{ e.id }}">
+                <button type="submit">Renovar (5% interés)</button>
+            </form>
+        {% else %}
+            <span style="color:gray; margin-left:10px;">Renovación deshabilitada (prestamo pagado)</span>
+        {% endif %}
+</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No tiene empeños registrados.</p>
+{% endif %}
+
+</body>
+</html>
