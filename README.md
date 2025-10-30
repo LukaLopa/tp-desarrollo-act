@@ -244,3 +244,5 @@ Notas:
 - Si quieres ejecutar directamente sin el lanzador: `python app_empenos_web.py`.
 
 Si quieres que el lanzador espere hasta que el servidor responda (en vez de un tiempo fijo), puedo actualizar el script para hacer una comprobación HTTP antes de abrir el navegador.
+#   t p - d e s a r r o l l o  
+ 
