@@ -1,38 +1,120 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestión de Empeños - Inicio</title>
-</head>
-<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
-<h2>💰 Sistema de Gestión de Empeños</h2>
+{% extends "base.html" %}
 
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
-{% if msg %}
-<p style="color:green;">{{ msg }}</p>
-{% endif %}
+{% block title %}Inicio - Sistema de Empeños{% endblock %}
 
-<h3>Registro</h3>
-<form action="/registrar" method="POST">
-    Nombre: <input type="text" name="nombre" required>
-    DNI: <input type="text" name="dni" required>
-    <button type="submit">Registrar</button>
-</form>
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-5">
+        <h1 class="display-4"><i class="bi bi-gem text-primary"></i> Sistema de Gestión de Empeños</h1>
+        <p class="lead text-muted">Gestión inteligente de préstamos con garantía</p>
+    </div>
 
-<h3>Iniciar sesión</h3>
-<form action="/login" method="POST">
-    DNI: <input type="text" name="dni" required>
-    <button type="submit">Entrar</button>
-</form>
+    <div class="row">
+        <!-- Registro -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="bi bi-person-plus text-success"></i> Registro de Usuario
+                    </h3>
+                    <form action="/registrar" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" name="nombre" required maxlength="120" placeholder="Juan Pérez">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">DNI *</label>
+                            <input type="text" class="form-control" name="dni" required pattern="[0-9]{7,8}" placeholder="12345678">
+                            <small class="form-text text-muted">7-8 dígitos numéricos</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" placeholder="correo@ejemplo.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono" placeholder="11-2345-6789">
+                        </div>
+                        <button type="submit" class="btn btn-success btn-custom w-100">
+                            <i class="bi bi-check-circle"></i> Registrarse
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-<h3>Iniciar sesión (Administrador)</h3>
-<form action="/admin_login" method="POST">
-    Usuario: <input type="text" name="admin_user" required>
-    Contraseña: <input type="password" name="admin_pass" required>
-    <button type="submit">Entrar como admin</button>
-</form>
+        <!-- Login Usuario -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="bi bi-box-arrow-in-right text-primary"></i> Iniciar Sesión
+                    </h3>
+                    <form action="/login" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">DNI</label>
+                            <input type="text" class="form-control" name="dni" required pattern="[0-9]{7,8}" placeholder="12345678">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-custom w-100">
+                            <i class="bi bi-door-open"></i> Entrar
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-</body>
-</html>
+            <!-- Login Admin -->
+            <div class="card card-custom mt-4" style="border: 2px solid #e74c3c;">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="bi bi-shield-lock text-danger"></i> Acceso Administrador
+                    </h3>
+                    <form action="/admin_login" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Usuario Admin</label>
+                            <input type="text" class="form-control" name="admin_user" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" name="admin_pass" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-custom w-100">
+                            <i class="bi bi-shield-check"></i> Entrar como Admin
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="row mt-5">
+        <div class="col-md-4 text-center mb-3">
+            <div class="card card-custom h-100">
+                <div class="card-body">
+                    <i class="bi bi-lightning-charge display-3 text-warning"></i>
+                    <h5 class="mt-3">Cotización IA</h5>
+                    <p class="text-muted">Valoración inteligente basada en estado y valor de referencia</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+            <div class="card card-custom h-100">
+                <div class="card-body">
+                    <i class="bi bi-clock-history display-3 text-info"></i>
+                    <h5 class="mt-3">Renovación Flexible</h5>
+                    <p class="text-muted">Renueve su empeño con interés del 5% por período</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+            <div class="card card-custom h-100">
+                <div class="card-body">
+                    <i class="bi bi-shield-check display-3 text-success"></i>
+                    <h5 class="mt-3">Seguro y Confiable</h5>
+                    <p class="text-muted">Sistema con seguimiento completo y transparente</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,24 +1,80 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Resultado de Cotización</title>
-</head>
-<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
-<h2>Resultado de la Pre-cotización</h2>
-<p>Objeto: <b>{{ tipo }}</b></p>
-<p>Descripción: {{ descripcion }}</p>
-<p>Estado: <b>{{ estado_percent }}%</b></p>
-<p>Valor estimado por IA: <b>${{ valor_estimado }}</b></p>
+{% extends "base.html" %}
 
-<form action="/precotizar" method="POST">
-    <input type="hidden" name="tipo" value="{{ tipo }}">
-    <input type="hidden" name="descripcion" value="{{ descripcion }}">
-    <input type="hidden" name="valor_ref" value="{{ valor_ref }}">
-    <input type="hidden" name="estado" value="{{ estado_percent }}">
-    <button type="submit" name="aceptar">Aceptar y Registrar</button>
-</form>
+{% block title %}Resultado Cotización - Sistema de Empeños{% endblock %}
 
-<a href="/panel">Volver al Panel</a>
-</body>
-</html>
+{% block content %}
+<div class="main-container">
+    <div class="card card-custom">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="bi bi-stars display-1 text-warning"></i>
+                <h2 class="mt-3">Resultado de la Pre-cotización</h2>
+                <p class="lead text-muted">Valoración generada por IA</p>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-light h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-tag"></i> Información del Objeto</h5>
+                            <hr>
+                            <p><strong>Tipo:</strong> {{ tipo }}</p>
+                            <p><strong>Descripción:</strong> {{ descripcion }}</p>
+                            <p><strong>Valor de referencia:</strong> ${{ '{:,}'.format(valor_ref|int) }}</p>
+                            <p><strong>Estado:</strong> 
+                                <span class="badge bg-{% if estado_percent >= 80 %}success{% elif estado_percent >= 50 %}warning{% else %}danger{% endif %}">
+                                    {{ estado_percent }}%
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-cash-stack"></i> Valoración IA</h5>
+                            <hr>
+                            <div class="text-center py-3">
+                                <h1 class="display-3">${{ '{:,}'.format(valor_estimado) }}</h1>
+                                <p class="lead">Valor estimado de empeño</p>
+                            </div>
+                            <small>
+                                <i class="bi bi-info-circle"></i> Este es el monto que puede recibir por su objeto
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info alert-custom">
+                <i class="bi bi-lightbulb"></i>
+                <strong>Información importante:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>El préstamo tiene un plazo de 30 días</li>
+                    <li>Puede renovar el préstamo con un interés del 5% por período</li>
+                    <li>Interés diario del 0.1% sobre el valor inicial</li>
+                    <li>El objeto queda en custodia hasta la devolución del préstamo</li>
+                </ul>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('panel') }}" class="btn btn-secondary btn-custom">
+                    <i class="bi bi-arrow-left"></i> Volver al Panel
+                </a>
+                
+                <form action="/precotizar" method="POST" style="display: inline;">
+                    <input type="hidden" name="tipo" value="{{ tipo }}">
+                    <input type="hidden" name="descripcion" value="{{ descripcion }}">
+                    <input type="hidden" name="valor_ref" value="{{ valor_ref }}">
+                    <input type="hidden" name="estado" value="{{ estado_percent }}">
+                    <button type="submit" name="aceptar" class="btn btn-success btn-custom" 
+                            onclick="return confirm('¿Confirma que desea registrar este empeño por ${{ "{:,}".format(valor_estimado) }}?');">
+                        <i class="bi bi-check-circle"></i> Aceptar y Registrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,80 +1,287 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel de Administración</title>
-</head>
-<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
-<h2>Panel de Administración</h2>
-<p>Bienvenido, {{ usuario.nombre }}</p>
-<a href="/logout">Cerrar sesión</a>
+{% extends "base.html" %}
 
-<h3>Usuarios registrados</h3>
-{% if usuarios %}
-<ul>
-{% for u in usuarios %}
-    <li>{{ u.nombre }} - DNI: {{ u.dni }}</li>
-{% endfor %}
-</ul>
-{% else %}
-<p>No hay usuarios registrados.</p>
-{% endif %}
+{% block title %}Panel Admin - Sistema de Empeños{% endblock %}
 
-<h3>Empeños registrados</h3>
-{% if empenos %}
-<ul>
-{% for e in empenos %}
-    <li>
-        ID {{ e.id }} - {{ e.dni }} - {{ e.tipo }} - {{ e.descripcion }} - ${{ e.valor_estimado }}
-        <br> Fecha de vencimiento: {{ e.expiracion.split('T')[0] }}
-        <br> Renovaciones: {{ e.renovaciones }}
-        {% if not e.pagado %}
-            {% if e.renovaciones and e.renovaciones > 0 %}
-                <span style="color:gray; margin-left:10px;">Rechazo deshabilitado (renovado)</span>
+{% block content %}
+<div class="main-container">
+    <h2 class="mb-4"><i class="bi bi-shield-check text-danger"></i> Panel de Administración</h2>
+
+    <!-- Estadísticas -->
+    {% if stats %}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_empenos }}</h3>
+                    <p class="mb-0">Total Empeños</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_pagados }}</h3>
+                    <p class="mb-0">Pagados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_activos }}</h3>
+                    <p class="mb-0">Activos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_usuarios }}</h3>
+                    <p class="mb-0">Usuarios</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Búsqueda y filtros -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <form action="/admin_panel" method="GET" class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" class="form-control" name="search" placeholder="Buscar por DNI, nombre, tipo o descripción..." value="{{ search_query or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="estado">
+                        <option value="">Todos los estados</option>
+                        <option value="activo" {% if estado_filter == 'activo' %}selected{% endif %}>Activos</option>
+                        <option value="pagado" {% if estado_filter == 'pagado' %}selected{% endif %}>Pagados</option>
+                        <option value="vencido" {% if estado_filter == 'vencido' %}selected{% endif %}>Vencidos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h5><i class="bi bi-lightning"></i> Acciones Rápidas</h5>
+            <div class="btn-group mt-2" role="group">
+                <a href="{{ url_for('exportar', tipo='usuarios') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-download"></i> Exportar Usuarios
+                </a>
+                <a href="{{ url_for('exportar', tipo='empenos') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-download"></i> Exportar Empeños
+                </a>
+                <a href="{{ url_for('exportar', tipo='pagos') }}" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-download"></i> Exportar Pagos
+                </a>
+                <a href="{{ url_for('reportes') }}" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-graph-up"></i> Ver Reportes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#empenos">
+                <i class="bi bi-gem"></i> Empeños ({{ empenos|length }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#usuarios">
+                <i class="bi bi-people"></i> Usuarios ({{ usuarios|length }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#logs">
+                <i class="bi bi-clock-history"></i> Logs
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Tab Empeños -->
+        <div class="tab-pane fade show active" id="empenos">
+            {% if empenos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Valor</th>
+                                <th>Interés</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th>Renov.</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in empenos %}
+                            <tr>
+                                <td><span class="badge bg-secondary">#{{ e.id }}</span></td>
+                                <td>
+                                    <strong>{{ e.nombre_usuario }}</strong><br>
+                                    <small class="text-muted">{{ e.dni }}</small>
+                                </td>
+                                <td>{{ e.tipo }}</td>
+                                <td>{{ e.descripcion[:30] }}...</td>
+                                <td>${{ '{:,}'.format(e.valor_estimado) }}</td>
+                                <td class="text-danger">${{ '{:,}'.format(e.interes_acumulado) }}</td>
+                                <td><strong>${{ '{:,}'.format(e.total_a_pagar) }}</strong></td>
+                                <td>
+                                    {% if e.pagado %}
+                                        <span class="badge bg-success">Pagado</span>
+                                    {% elif e.estado == 'activo' %}
+                                        <span class="badge bg-info">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ e.renovaciones }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if not e.pagado %}
+                                            {% if e.renovaciones == 0 %}
+                                                <form action="/rechazar_empeno" method="POST" style="display:inline;" onsubmit="return confirm('¿Rechazar empeño #{{ e.id }}?');">
+                                                    <input type="hidden" name="id" value="{{ e.id }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            <form action="/renovar_empeno" method="POST" style="display:inline;" onsubmit="return confirm('¿Renovar empeño #{{ e.id }}?');">
+                                                <input type="hidden" name="id" value="{{ e.id }}">
+                                                <button type="submit" class="btn btn-warning btn-sm">
+                                                    <i class="bi bi-arrow-clockwise"></i>
+                                                </button>
+                                            </form>
+                                            <form action="/marcar_pagado" method="POST" style="display:inline;" onsubmit="return confirm('¿Marcar como pagado empeño #{{ e.id }}?');">
+                                                <input type="hidden" name="id" value="{{ e.id }}">
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% else %}
-                <form action="/rechazar_empeno" method="POST" style="display:inline; margin-left:10px;">
-                    <input type="hidden" name="id" value="{{ e.id }}">
-                    <button type="submit">Rechazar</button>
-                </form>
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="lead text-muted mt-3">No hay empeños registrados.</p>
+                </div>
             {% endif %}
-            <form action="/renovar_empeno" method="POST" style="display:inline; margin-left:6px;">
-                <input type="hidden" name="id" value="{{ e.id }}">
-                <button type="submit">Renovar (admin)</button>
-            </form>
-        {% else %}
-            <span style="color:gray; margin-left:6px;">Operaciones deshabilitadas (prestamo pagado)</span>
-        {% endif %}
-        {% if e.pagado %}
-            <span style="color:green; margin-left:10px;"><b>Pagado</b>{% if e.pagado_at %} ({{ e.pagado_at.split('T')[0] }}){% endif %}</span>
-        {% else %}
-            <form action="/marcar_pagado" method="POST" style="display:inline; margin-left:6px;">
-                <input type="hidden" name="id" value="{{ e.id }}">
-                <button type="submit">Marcar como préstamo pagado</button>
-            </form>
-        {% endif %}
-    </li>
-{% endfor %}
-</ul>
-{% else %}
-<p>No hay empeños registrados.</p>
-{% endif %}
+        </div>
 
-<a href="/">Volver al inicio</a>
-<h3>Log de Renovaciones</h3>
-{% if renovaciones_log %}
-<ul>
-{% for r in renovaciones_log %}
-    <li>ID {{ r.id }} - By: {{ r.by }} {% if r.by_admin %}(admin){% endif %} - {{ r.time.split('T')[0] }} - ${{ r.old }} -> ${{ r.new }}</li>
-{% endfor %}
-</ul>
-{% endif %}
-<h3>Log de Pagos</h3>
-{% if pagos_log %}
-<ul>
-{% for p in pagos_log %}
-    <li>ID {{ p.id }} - Empeño {{ p.empeno_id }} - {{ p.time.split('T')[0] }} {% if p.by_admin %}(admin){% endif %}</li>
-{% endfor %}
-</ul>
-{% endif %}
-</body>
-</html>
+        <!-- Tab Usuarios -->
+        <div class="tab-pane fade" id="usuarios">
+            {% if usuarios %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>DNI</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Registrado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in usuarios %}
+                            <tr>
+                                <td>{{ u.id }}</td>
+                                <td><strong>{{ u.nombre }}</strong></td>
+                                <td>{{ u.dni }}</td>
+                                <td>{{ u.email or '-' }}</td>
+                                <td>{{ u.telefono or '-' }}</td>
+                                <td>{{ u.created_at.split('T')[0] if u.created_at else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-center text-muted py-5">No hay usuarios registrados.</p>
+            {% endif %}
+        </div>
+
+        <!-- Tab Logs -->
+        <div class="tab-pane fade" id="logs">
+            <h5 class="mt-3"><i class="bi bi-arrow-repeat"></i> Log de Renovaciones (últimas 50)</h5>
+            {% if renovaciones_log %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Empeño ID</th>
+                                <th>Usuario</th>
+                                <th>Fecha</th>
+                                <th>Cambio</th>
+                                <th>Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in renovaciones_log %}
+                            <tr>
+                                <td>#{{ r.empeno_id }}</td>
+                                <td>{{ r.by }}</td>
+                                <td>{{ r.time.split('T')[0] }}</td>
+                                <td>${{ '{:,}'.format(r.old) }} → ${{ '{:,}'.format(r.new) }}</td>
+                                <td>{% if r.by_admin %}<span class="badge bg-danger">Admin</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            <h5 class="mt-4"><i class="bi bi-cash"></i> Log de Pagos (últimos 50)</h5>
+            {% if pagos_log %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Empeño ID</th>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                                <th>Interés</th>
+                                <th>Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in pagos_log %}
+                            <tr>
+                                <td>#{{ p.empeno_id }}</td>
+                                <td>{{ p.time.split('T')[0] }}</td>
+                                <td>${{ '{:,}'.format(p.monto_pagado or 0) }}</td>
+                                <td>${{ '{:,}'.format(p.interes_pagado|int or 0) }}</td>
+                                <td>{% if p.by_admin %}<span class="badge bg-danger">Admin</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

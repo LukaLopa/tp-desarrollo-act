@@ -1,56 +1,149 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel de Usuario</title>
-</head>
-<body style="font-family: Arial; background-color:#f3f3f3; padding:20px;">
-<h2>Bienvenido, {{ usuario.nombre }}</h2>
-<p>DNI: {{ usuario.dni }}</p>
-<a href="/logout">Cerrar sesión</a>
+{% extends "base.html" %}
 
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
-{% if msg %}
-<p style="color:green;">{{ msg }}</p>
-{% endif %}
+{% block title %}Mi Panel - Sistema de Empeños{% endblock %}
 
-<h3>Solicitar Pre-cotización (IA)</h3>
-<form action="/precotizar" method="POST">
-    Tipo de objeto: <input type="text" name="tipo" required><br><br>
-    Descripción: <input type="text" name="descripcion" required><br><br>
-    Valor de referencia ($): <input type="number" name="valor_ref" required><br><br>
-    Estado (%): <input type="number" step="1" min="0" max="100" name="estado" required><br><br>
-    <button type="submit">Calcular valor estimado</button>
-</form>
+{% block content %}
+<div class="main-container">
+    <div class="mb-4">
+        <h2><i class="bi bi-person-circle"></i> Bienvenido, {{ usuario.nombre }}</h2>
+        <p class="text-muted">DNI: {{ usuario.dni }}</p>
+    </div>
 
-<h3>Historial de Empeños</h3>
-{% if historial %}
-<ul>
-{% for e in historial %}
-    <li>
-    ID {{ e.id }} - {{ e.tipo }} - {{ e.descripcion }} - Valor estimado: ${{ e.valor_estimado }}
-    <br> Fecha de vencimiento: {{ e.expiracion.split('T')[0] }}
-    <br> Días restantes para pagar: {% if e.dias_restantes > 0 %}{{ e.dias_restantes }} días{% else %}<b>Vencido</b>{% endif %}
-    {% if e.pagado %}
-        <br><span style="color:green;"><b>Pagado</b>{% if e.pagado_at %} ({{ e.pagado_at.split('T')[0] }}){% endif %}</span>
-    {% endif %}
-    <br> Renovaciones: {{ e.renovaciones }}
-        {% if not e.pagado %}
-            <form action="/renovar_empeno" method="POST" style="display:inline; margin-left:10px;">
-                <input type="hidden" name="id" value="{{ e.id }}">
-                <button type="submit">Renovar (5% interés)</button>
+    <!-- Formulario de cotización -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <h3 class="card-title">
+                <i class="bi bi-calculator text-primary"></i> Solicitar Pre-cotización (IA)
+            </h3>
+            <form action="/precotizar" method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de objeto *</label>
+                        <input type="text" class="form-control" name="tipo" required maxlength="120" placeholder="Ej: Joya, Electrónico, Vehículo">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Descripción *</label>
+                        <input type="text" class="form-control" name="descripcion" required maxlength="500" placeholder="Detalles del objeto">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Valor de referencia ($) *</label>
+                        <input type="number" class="form-control" name="valor_ref" required min="1" step="0.01" placeholder="150000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Estado (%) *</label>
+                        <input type="range" class="form-range" name="estado" min="0" max="100" value="80" id="estadoRange" oninput="document.getElementById('estadoValue').textContent = this.value + '%'">
+                        <small class="form-text">Estado: <strong id="estadoValue">80%</strong></small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-custom">
+                    <i class="bi bi-stars"></i> Calcular valor estimado con IA
+                </button>
             </form>
-        {% else %}
-            <span style="color:gray; margin-left:10px;">Renovación deshabilitada (prestamo pagado)</span>
-        {% endif %}
-</li>
-{% endfor %}
-</ul>
-{% else %}
-<p>No tiene empeños registrados.</p>
-{% endif %}
+        </div>
+    </div>
 
-</body>
-</html>
+    <!-- Barra de búsqueda -->
+    <div class="card card-custom mb-4">
+        <div class="card-body">
+            <form action="/panel" method="GET" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" class="form-control" name="search" placeholder="Buscar por tipo o descripción..." value="{{ search_query or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Historial de empeños -->
+    <div class="card card-custom">
+        <div class="card-body">
+            <h3 class="card-title mb-4">
+                <i class="bi bi-clock-history"></i> Historial de Empeños
+            </h3>
+            
+            {% if historial %}
+                <div class="row">
+                    {% for e in historial %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100" style="border-left: 5px solid {% if e.pagado %}#27ae60{% elif e.dias_restantes > 0 %}#3498db{% else %}#e74c3c{% endif %};">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">
+                                        <span class="badge bg-secondary">#{{ e.id }}</span> {{ e.tipo }}
+                                    </h5>
+                                    {% if e.pagado %}
+                                        <span class="badge bg-success badge-custom">
+                                            <i class="bi bi-check-circle"></i> Pagado
+                                        </span>
+                                    {% elif e.dias_restantes > 0 %}
+                                        <span class="badge bg-info badge-custom">
+                                            <i class="bi bi-hourglass-split"></i> Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger badge-custom">
+                                            <i class="bi bi-exclamation-triangle"></i> Vencido
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="text-muted small mb-2">{{ e.descripcion }}</p>
+                                
+                                <div class="mb-2">
+                                    <strong>Valor inicial:</strong> ${{ '{:,}'.format(e.valor_inicial) }}
+                                    {% if e.interes_acumulado > 0 %}
+                                        <br><strong>Interés acumulado:</strong> <span class="text-danger">${{ '{:,}'.format(e.interes_acumulado) }}</span>
+                                    {% endif %}
+                                    <br><strong>Total a pagar:</strong> <span class="text-primary">${{ '{:,}'.format(e.total_a_pagar) }}</span>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> Vencimiento: {{ e.expiracion.split('T')[0] }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-arrow-repeat"></i> Renovaciones: {{ e.renovaciones }}
+                                    </small>
+                                </div>
+                                
+                                {% if e.dias_restantes > 0 %}
+                                    <div class="alert alert-info alert-sm mb-2">
+                                        <i class="bi bi-info-circle"></i> {{ e.dias_restantes }} días restantes para pagar
+                                    </div>
+                                {% endif %}
+                                
+                                {% if e.pagado %}
+                                    <p class="text-success mb-0">
+                                        <i class="bi bi-check-circle-fill"></i> 
+                                        Pagado {% if e.pagado_at %}el {{ e.pagado_at.split('T')[0] }}{% endif %}
+                                    </p>
+                                {% else %}
+                                    <form action="/renovar_empeno" method="POST" onsubmit="return confirm('¿Renovar este empeño con 5% de interés?');">
+                                        <input type="hidden" name="id" value="{{ e.id }}">
+                                        <button type="submit" class="btn btn-warning btn-sm btn-custom">
+                                            <i class="bi bi-arrow-clockwise"></i> Renovar (5% interés)
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="lead text-muted mt-3">No tiene empeños registrados.</p>
+                    <p class="text-muted">Solicite una pre-cotización arriba para comenzar.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
