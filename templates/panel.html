@@ -94,6 +94,12 @@
     </div>
 
     <!-- Historial de empeños -->
+        <style>
+            /* Clases para el borde izquierdo de las tarjetas de empeños */
+            .status-border-paid { border-left: 5px solid #27ae60 !important; }
+            .status-border-active { border-left: 5px solid #3498db !important; }
+            .status-border-expired { border-left: 5px solid #e74c3c !important; }
+        </style>
     <div class="card card-custom">
         <div class="card-body">
             <h3 class="card-title mb-4">
@@ -104,7 +110,7 @@
                 <div class="row">
                     {% for e in historial %}
                     <div class="col-md-6 mb-3">
-                        <div class="card h-100" style="border-left: 5px solid {% if e.pagado %}#27ae60{% elif e.dias_restantes > 0 %}#3498db{% else %}#e74c3c{% endif %};">
+                        <div class="card h-100 status-border-{{ e.border_class }}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <h5 class="card-title mb-0">

@@ -397,6 +397,21 @@ def panel():
             'pagado_at': pagado_at,
             'estado': e.estado or 'activo'
         })
+        # Agregar color de borde para la tarjeta en UI y evitar lógica CSS en plantilla
+        try:
+            # color y clase de borde: 'paid', 'active', 'expired'
+            if pagado:
+                historial[-1]['border_color'] = '#27ae60'
+                historial[-1]['border_class'] = 'paid'
+            elif left > 0:
+                historial[-1]['border_color'] = '#3498db'
+                historial[-1]['border_class'] = 'active'
+            else:
+                historial[-1]['border_color'] = '#e74c3c'
+                historial[-1]['border_class'] = 'expired'
+        except Exception:
+            historial[-1]['border_color'] = '#3498db'
+            historial[-1]['border_class'] = 'active'
     
     # Citas del usuario (para mostrarlas en el panel)
     try:
