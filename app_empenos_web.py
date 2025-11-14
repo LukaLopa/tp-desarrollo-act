@@ -398,7 +398,14 @@ def panel():
             'estado': e.estado or 'activo'
         })
     
-    return render_template('panel.html', usuario=usuario_activo, historial=historial, search_query=search_query)
+    # Citas del usuario (para mostrarlas en el panel)
+    try:
+        citas = Cita.query.filter_by(user_id=usuario_activo.id).order_by(Cita.created_at.desc()).all()
+    except Exception:
+        citas = []
+
+    return render_template('panel.html', usuario=usuario_activo, historial=historial, search_query=search_query, citas=citas)
+
 
 
 @app.route('/admin_login', methods=['POST'])
@@ -488,6 +495,8 @@ def admin_panel():
     users_db = User.query.all()
     renov_log = RenovationLog.query.order_by(RenovationLog.time.desc()).limit(50).all()
     pagos_log = PaidLog.query.order_by(PaidLog.time.desc()).limit(50).all()
+    # Citas recientes
+    citas_db = Cita.query.order_by(Cita.created_at.desc()).limit(200).all()
     
     # Estadísticas
     total_empenos = Empeno.query.count()
@@ -507,12 +516,50 @@ def admin_panel():
         usuario=usuario_activo,
         usuarios=users_db,
         empenos=enriched,
+        citas=citas_db,
         renovaciones_log=renov_log,
         pagos_log=pagos_log,
         stats=stats,
         search_query=search_query,
         estado_filter=estado_filter
     )
+
+
+@app.route('/admin/cita/accion', methods=['POST'])
+@admin_required
+def admin_cita_accion():
+    try:
+        cita_id = int(request.form.get('cita_id', 0))
+        action = request.form.get('action', '')
+    except (ValueError, TypeError):
+        flash('Parámetros inválidos', 'error')
+        return redirect(url_for('admin_panel'))
+
+    cita = Cita.query.get(cita_id)
+    if not cita:
+        flash('Cita no encontrada', 'error')
+        return redirect(url_for('admin_panel'))
+
+    try:
+        if action == 'confirmar':
+            cita.estado = 'confirmada'
+            flash(f'Cita #{cita.id} confirmada', 'success')
+        elif action == 'rechazar':
+            cita.estado = 'rechazada'
+            flash(f'Cita #{cita.id} rechazada', 'info')
+        else:
+            flash('Acción desconocida', 'error')
+            return redirect(url_for('admin_panel'))
+
+        db.session.add(cita)
+        db.session.commit()
+        logger.info(f"Admin {session.get('admin_username')} cambió estado de cita {cita.id} a {cita.estado}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error cambiando estado de cita: {e}")
+        flash('Error al actualizar la cita', 'error')
+
+    return redirect(url_for('admin_panel'))
 
 
 @app.route('/rechazar_empeno', methods=['POST'])
@@ -754,7 +801,8 @@ def precotizar():
             
             logger.info(f"Empeño registrado: ID {nuevo.id}, User: {user_id}, Valor: ${datos['valor_estimado']}")
             flash(f'Empeño registrado exitosamente. ID: {nuevo.id}', 'success')
-            return redirect(url_for('panel'))
+            # Redirigir al formulario para agendar cita asociada al empeño recién creado
+            return redirect(url_for('agendar_cita_form', empeno_id=nuevo.id))
             
         except Exception as e:
             db.session.rollback()
@@ -796,15 +844,25 @@ def agendar_cita():
             flash(f'Hora inválida: {msg_hora}', 'error')
             return redirect(url_for('panel'))
         
+        # Prevención de doble-reserva: no permitir otra cita pendiente/confirmada en mismo slot
+        existente = Cita.query.filter_by(fecha=fecha_str, hora=hora_str).filter(Cita.estado.in_(['pendiente', 'confirmada'])).first()
+        if existente:
+            flash('Ya existe una cita en esa fecha y hora. Por favor, elija otra hora.', 'error')
+            # Si venimos desde un empeño específico, volver al formulario de agendado
+            try:
+                return redirect(url_for('agendar_cita_form', empeno_id=int(empeno_id))) if empeno_id else redirect(url_for('panel'))
+            except Exception:
+                return redirect(url_for('panel'))
+
         # Crear la cita
         nueva_cita = Cita(
             user_id=usuario_activo.id,
-            empeno_id=empeno_id if empeno_id else None,
+            empeno_id=int(empeno_id) if empeno_id else None,
             fecha=fecha_str,
             hora=hora_str,
             estado='pendiente'
         )
-        
+
         db.session.add(nueva_cita)
         db.session.commit()
         
@@ -817,6 +875,19 @@ def agendar_cita():
         logger.error(f"Error agendando cita: {e}")
         flash('Error al agendar cita', 'error')
         return redirect(url_for('panel'))
+
+
+@app.route('/agendar_cita/<int:empeno_id>', methods=['GET'])
+@login_required
+def agendar_cita_form(empeno_id):
+    """Formulario para agendar cita asociado a un empeño recién creado"""
+    empeno = Empeno.query.get(empeno_id)
+    if not empeno:
+        flash('No se encontró el empeño para agendar cita', 'error')
+        return redirect(url_for('panel'))
+
+    # Pasar datos del empeño a la plantilla
+    return render_template('agendar_cita.html', usuario=usuario_activo, empeno=empeno)
 
 
 @app.route('/_shutdown', methods=['POST', 'GET'])
