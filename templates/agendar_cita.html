@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar Cita - Sistema de Empeños{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="card card-custom">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="bi bi-calendar-plus display-2 text-primary"></i>
+                <h2 class="mt-3">Agendar Cita</h2>
+                <p class="lead text-muted">Agende una cita para la evaluación de su objeto</p>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-light h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-tag"></i> Información del Empeño</h5>
+                            <hr>
+                            <p><strong>ID:</strong> #{{ empeno.id }}</p>
+                            <p><strong>Tipo:</strong> {{ empeno.tipo }}</p>
+                            <p><strong>Descripción:</strong> {{ empeno.descripcion }}</p>
+                            <p><strong>Valor estimado:</strong> ${{ '{:,}'.format(empeno.valor_estimado) }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card bg-light h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-clock"></i> Seleccione fecha y hora</h5>
+                            <hr>
+                            <form action="{{ url_for('agendar_cita') }}" method="POST">
+                                <input type="hidden" name="empeno_id" value="{{ empeno.id }}">
+                                <div class="mb-3">
+                                    <label for="fecha" class="form-label">Fecha *</label>
+                                    <input type="date" id="fecha" name="fecha" class="form-control" required>
+                                    <small class="text-muted">Seleccione una fecha posterior a hoy</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="hora" class="form-label">Hora *</label>
+                                    <input type="time" id="hora" name="hora" class="form-control" required>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">Agendar Cita</button>
+                                    <a href="{{ url_for('panel') }}" class="btn btn-outline-secondary">Cancelar</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Establecer fecha mínima (mañana)
+document.addEventListener('DOMContentLoaded', function() {
+    const fechaInput = document.getElementById('fecha');
+    const hoy = new Date();
+    const manana = new Date(hoy);
+    manana.setDate(manana.getDate() + 1);
+
+    const año = manana.getFullYear();
+    const mes = String(manana.getMonth() + 1).padStart(2, '0');
+    const dia = String(manana.getDate()).padStart(2, '0');
+
+    fechaInput.min = `${año}-${mes}-${dia}`;
+});
+</script>
+
+{% endblock %}

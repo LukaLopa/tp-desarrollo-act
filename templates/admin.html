@@ -106,6 +106,11 @@
                 <i class="bi bi-clock-history"></i> Logs
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#citas">
+                <i class="bi bi-calendar-check"></i> Citas
+            </a>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -280,6 +285,70 @@
                         </tbody>
                     </table>
                 </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab Citas -->
+        <div class="tab-pane fade" id="citas">
+            <h5 class="mt-3"><i class="bi bi-calendar-check"></i> Citas (últimas)</h5>
+            {% if citas %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Empeño ID</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in citas %}
+                            <tr>
+                                <td>#{{ c.id }}</td>
+                                <td>{{ c.user.nombre if c.user else '-' }}<br><small class="text-muted">{{ c.user.dni if c.user else '-' }}</small></td>
+                                <td>{{ c.empeno_id or '-' }}</td>
+                                <td>{{ c.fecha.split('T')[0] if c.fecha else '-' }}</td>
+                                <td>{{ c.hora or '-' }}</td>
+                                <td>
+                                    {% if c.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif c.estado == 'confirmada' %}
+                                        <span class="badge bg-success">Confirmada</span>
+                                    {% elif c.estado == 'rechazada' %}
+                                        <span class="badge bg-danger">Rechazada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ c.estado }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if c.estado == 'pendiente' %}
+                                            <form action="/admin/cita/accion" method="POST" style="display:inline;">
+                                                <input type="hidden" name="cita_id" value="{{ c.id }}">
+                                                <input type="hidden" name="action" value="confirmar">
+                                                <button type="submit" class="btn btn-success btn-sm">Confirmar</button>
+                                            </form>
+                                            <form action="/admin/cita/accion" method="POST" style="display:inline;">
+                                                <input type="hidden" name="cita_id" value="{{ c.id }}">
+                                                <input type="hidden" name="action" value="rechazar">
+                                                <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
+                                            </form>
+                                        {% else %}
+                                            <small class="text-muted">Sin acciones</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-center text-muted py-4">No hay citas registradas.</p>
             {% endif %}
         </div>
     </div>
