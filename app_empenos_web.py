@@ -130,6 +130,18 @@ class PaidLog(db.Model):
     interes_pagado = db.Column(db.Float, default=0.0)
 
 
+class Cita(db.Model):
+    """Registro de citas para evaluación de empeños"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    empeno_id = db.Column(db.Integer)  # ID de la precotización si está relacionada
+    fecha = db.Column(db.String(64))  # Fecha de la cita (ISO format)
+    hora = db.Column(db.String(5))  # Hora en formato HH:MM
+    created_at = db.Column(db.String(64), default=lambda: datetime.now(timezone.utc).isoformat())
+    estado = db.Column(db.String(20), default='pendiente')  # pendiente, confirmada, completada, cancelada
+    user = db.relationship('User', backref=db.backref('citas', lazy=True))
+
+
 with app.app_context():
     db.create_all()
     # Crear admin por defecto si no existe
@@ -216,6 +228,36 @@ def calcular_interes_acumulado(created_iso, valor_inicial, renovaciones=0):
     interes_diario_total = valor_inicial * INTERES_DIARIO * dias
     
     return interes_renovaciones + interes_diario_total
+
+
+def validar_fecha_cita(fecha_str):
+    """Validar que la fecha sea posterior a hoy y en formato válido"""
+    try:
+        fecha = datetime.fromisoformat(fecha_str)
+        hoy = datetime.now(timezone.utc)
+        # Comparar solo la fecha, sin la hora
+        fecha_date = fecha.date()
+        hoy_date = hoy.date()
+        
+        if fecha_date <= hoy_date:
+            return False, "La fecha debe ser posterior a hoy"
+        return True, ""
+    except Exception as e:
+        return False, f"Formato de fecha inválido: {str(e)}"
+
+
+def validar_hora_cita(hora_str):
+    """Validar que la hora esté en formato HH:MM válido"""
+    try:
+        parts = hora_str.split(':')
+        if len(parts) != 2:
+            return False, "Formato de hora inválido. Use HH:MM"
+        hora, minutos = int(parts[0]), int(parts[1])
+        if not (0 <= hora < 24 and 0 <= minutos < 60):
+            return False, "Hora fuera de rango válido"
+        return True, ""
+    except Exception as e:
+        return False, f"Error validando hora: {str(e)}"
 
 
 @app.route('/')
@@ -671,7 +713,8 @@ def precotizar():
         'descripcion': descripcion,
         'valor_ref': valor_ref,
         'estado': estado,
-        'valor_estimado': valor_estimado
+        'valor_estimado': valor_estimado,
+        'fecha_cotizacion': datetime.now(timezone.utc).isoformat()
     }
     
     # Si el usuario acepta la cotización
@@ -730,6 +773,50 @@ def precotizar():
         valor_estimado=valor_estimado,
         usuario=usuario_activo
     )
+
+
+@app.route('/agendar_cita', methods=['POST'])
+@login_required
+def agendar_cita():
+    """Agendar una cita para evaluación de empeño"""
+    try:
+        fecha_str = request.form.get('fecha', '')
+        hora_str = request.form.get('hora', '')
+        empeno_id = request.form.get('empeno_id')
+        
+        # Validar fecha
+        fecha_valida, msg_fecha = validar_fecha_cita(fecha_str)
+        if not fecha_valida:
+            flash(f'Fecha inválida: {msg_fecha}', 'error')
+            return redirect(url_for('panel'))
+        
+        # Validar hora
+        hora_valida, msg_hora = validar_hora_cita(hora_str)
+        if not hora_valida:
+            flash(f'Hora inválida: {msg_hora}', 'error')
+            return redirect(url_for('panel'))
+        
+        # Crear la cita
+        nueva_cita = Cita(
+            user_id=usuario_activo.id,
+            empeno_id=empeno_id if empeno_id else None,
+            fecha=fecha_str,
+            hora=hora_str,
+            estado='pendiente'
+        )
+        
+        db.session.add(nueva_cita)
+        db.session.commit()
+        
+        logger.info(f"Cita agendada: ID {nueva_cita.id}, Usuario: {usuario_activo.dni}, Fecha: {fecha_str}, Hora: {hora_str}")
+        flash(f'Cita agendada exitosamente para {fecha_str} a las {hora_str}', 'success')
+        return redirect(url_for('panel'))
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error agendando cita: {e}")
+        flash('Error al agendar cita', 'error')
+        return redirect(url_for('panel'))
 
 
 @app.route('/_shutdown', methods=['POST', 'GET'])
